@@ -1,0 +1,28 @@
+# Dataset
+data/raw/
+data/processed/
+
+# Modelos
+models/
+*.pt
+*.onnx
+*.hef
+
+# Runs de Ultralytics
+runs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Conda envs locales
+envs/
+
+# OS
+.DS_Store
+Thumbs.db
