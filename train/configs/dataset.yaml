@@ -1,0 +1,13 @@
+# Rutas relativas a la raíz del repo
+path: data/processed
+train: images/train
+val: images/val
+test: images/test
+
+# Clases
+# NOTA: confirmar con el contacto si 'no-pez' debe entrenarse como clase explícita
+# o si se omite y se trata como background implícito (más común en detección)
+nc: 2
+names:
+  0: pez
+  1: no-pez
