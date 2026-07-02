@@ -1,0 +1,22 @@
+# Dependencias Python comunes del proyecto.
+# Para entrenamiento GPU, instala PyTorch/CUDA según tu máquina desde:
+# https://pytorch.org/get-started/locally/
+#
+# Ejemplo CUDA 12.1:
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#
+# Hailo Dataflow Compiler y HailoRT se instalan desde el portal oficial de Hailo.
+
+albumentations
+ijson
+jupyter
+matplotlib
+numpy
+onnx
+onnxruntime
+opencv-python-headless
+pyyaml
+torch
+torchvision
+tqdm
+ultralytics
