@@ -2,7 +2,6 @@
 
 Instrucciones para agentes de IA asistiendo en este proyecto.
 Leer completo antes de escribir cualquier línea de código.
-
 ---
 
 ## 1. Contexto del proyecto

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -36,22 +37,25 @@ def validate_inputs(onnx: Path, calib_path: Path) -> None:
 
 def build_default_command(config: ExportHefConfig) -> list[str]:
     """Build the default Hailo Model Zoo compile command."""
-    return [
+    command = [
         "hailomz",
         "compile",
         "yolov8n",
         "--ckpt",
-        str(config.onnx),
+        str(config.onnx.resolve()),
         "--hw-arch",
         config.hw_arch,
         "--calib-path",
-        str(config.calib_path),
+        str(config.calib_path.resolve()),
         "--classes",
         str(config.classes),
         "--performance",
-        "--output-dir",
-        str(config.work_dir),
     ]
+    if config.start_node_names:
+        command.extend(["--start-node-names", *config.start_node_names])
+    if config.end_node_names:
+        command.extend(["--end-node-names", *config.end_node_names])
+    return command
 
 
 def build_custom_command(config: ExportHefConfig) -> list[str]:
@@ -59,10 +63,10 @@ def build_custom_command(config: ExportHefConfig) -> list[str]:
     if config.command_template is None:
         return build_default_command(config)
     rendered = config.command_template.format(
-        onnx=config.onnx,
-        output=config.output,
-        calib_path=config.calib_path,
-        work_dir=config.work_dir,
+        onnx=config.onnx.resolve(),
+        output=config.output.resolve(),
+        calib_path=config.calib_path.resolve(),
+        work_dir=config.work_dir.resolve(),
         hw_arch=config.hw_arch,
         classes=config.classes,
         model_name=config.model_name,
@@ -97,7 +101,16 @@ def compile_hef(config: ExportHefConfig) -> Path:
             "Install Hailo Dataflow Compiler / Hailo Model Zoo in the export environment."
         )
 
-    subprocess.run(command, check=True)
+    env = os.environ.copy()
+    conda_prefix = env.get("CONDA_PREFIX")
+    if conda_prefix:
+        conda_lib = str(Path(conda_prefix) / "lib")
+        current_library_path = env.get("LD_LIBRARY_PATH", "")
+        env["LD_LIBRARY_PATH"] = (
+            f"{conda_lib}:{current_library_path}" if current_library_path else conda_lib
+        )
+
+    subprocess.run(command, check=True, cwd=config.work_dir, env=env)
     hef_path = find_hef(config.work_dir)
     shutil.copy2(hef_path, config.output)
     LOGGER.info("HEF exported to %s", config.output)

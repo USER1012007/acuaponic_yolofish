@@ -83,6 +83,15 @@ class ExportHefConfig:
     model_name: str = "fish_yolov8n"
     dry_run: bool = False
     command_template: str | None = None
+    start_node_names: tuple[str, ...] = ()
+    end_node_names: tuple[str, ...] = (
+        "/model.22/cv2.0/cv2.0.2/Conv",
+        "/model.22/cv3.0/cv3.0.2/Conv",
+        "/model.22/cv2.1/cv2.1.2/Conv",
+        "/model.22/cv3.1/cv3.1.2/Conv",
+        "/model.22/cv2.2/cv2.2.2/Conv",
+        "/model.22/cv3.2/cv3.2.2/Conv",
+    )
 
 
 @dataclass(frozen=True)
@@ -107,11 +116,11 @@ class ReportConfig:
 class PipelineConfig:
     """Configuration for main.py orchestration."""
 
-    prepare_dataset: bool = True
-    train: bool = True
-    export_onnx: bool = True
-    export_hef: bool = False
-    report: bool = True
+    prepare_dataset: bool = False
+    train: bool = False
+    export_onnx: bool = False
+    export_hef: bool = True
+    report: bool = False
 
 
 PREPARE_DATASET = PrepareDatasetConfig()

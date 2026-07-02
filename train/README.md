@@ -56,22 +56,23 @@ fishbowl-yolo/
 
 ## Setup
 
-### Dependencias Python
+### Entornos limpios
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+bash scripts/setup_train_env.sh
+conda activate fishbowl-train
 ```
 
-Para entrenamiento GPU, instala PyTorch/CUDA según tu máquina desde la guía oficial de PyTorch. El archivo `requirements.txt` incluye `torch` y `torchvision` como base, pero en CUDA suele convenir usar el índice específico de PyTorch.
+Ese entorno es para dataset, entrenamiento, exportación ONNX y reportes.
 
-### Exportación Hailo
+Para Hailo, usa un entorno separado:
 
 ```bash
-pip install -r requirements.txt
-# Instalar Hailo Dataflow Compiler manualmente — ver docs/hailo_setup.md
+bash scripts/setup_hailo_env.sh
+conda activate fishbowl-hailo
 ```
+
+Ver [docs/environment_setup.md](docs/environment_setup.md) y [docs/hailo_setup.md](docs/hailo_setup.md).
 
 ## Uso
 
