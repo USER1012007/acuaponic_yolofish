@@ -7,27 +7,32 @@ Fine-tuning de YOLOv8n para detección de peces en peceras, con deployment en Ra
 ```
 JSON + imágenes
       ↓
-scripts/prepare_dataset.py  →  splits en formato YOLO txt
+main.py
       ↓
-scripts/train.py            →  best.pt  (GPU: 4070 PC o 5060 laptop)
+prepare_dataset.py         →  data/processed en formato YOLO txt
       ↓
-scripts/export_onnx.py      →  model.onnx
+train.py                   →  models/best.pt  (fine-tuning completo)
       ↓
-scripts/export_hef.py       →  model.hef  (requiere Hailo SDK en Linux x86)
+export_onnx.py             →  models/model.onnx
       ↓
-inference/infer.py + camera.py  [Raspberry Pi 5 + Hailo-8]
+export_hef.py              →  models/model.hef  (requiere Hailo SDK en Linux x86)
+      ↓
+metrics_report.py          →  gráficas + PNGs comparativos de validación
 ```
 
 ## Estructura del repo
 
 ```
 fishbowl-yolo/
+├── main.py                 # único entrypoint del pipeline completo
+├── config.py               # parámetros centrales de dataset, training, export y reportes
 ├── configs/
 │   ├── dataset.yaml        # clases y rutas del dataset
-│   └── hyperparams.yaml    # hiperparámetros de entrenamiento
+│   └── hyperparams.yaml    # nota de compatibilidad; usar config.py
+├── dataset/                # dataset original: JSON + train/ + val/ (gitignored)
 ├── data/
-│   ├── raw/                # dataset original (gitignored)
-│   └── processed/          # splits train/val/test en formato YOLO (gitignored)
+│   ├── calibration/        # subset para calibración Hailo (gitignored)
+│   └── processed/          # splits train/val en formato YOLO (gitignored)
 │       ├── images/{train,val,test}/
 │       └── labels/{train,val,test}/
 ├── docs/
@@ -41,76 +46,56 @@ fishbowl-yolo/
 │   └── eda.ipynb           # exploración del dataset y métricas visuales
 ├── scripts/
 │   ├── prepare_dataset.py  # JSON → YOLO txt + split train/val/test
+│   ├── augmentations.py    # augmentations offline con Albumentations
 │   ├── train.py            # fine-tuning YOLOv8n
 │   ├── export_onnx.py      # .pt → .onnx
 │   ├── export_hef.py       # .onnx → .hef (solo Linux x86 + Hailo SDK)
-│   └── validate.py         # evaluación de métricas sobre val/test
-├── environment-train.yml   # entorno conda para entrenamiento (Windows/Linux GPU)
-├── environment-export.yml  # entorno conda para exportación Hailo (Linux x86)
-└── requirements-rpi.txt    # dependencias para Raspberry Pi
+│   └── metrics_report.py   # gráficas y contact sheets de validación
+└── requirements.txt        # dependencias Python del proyecto
 ```
 
 ## Setup
 
-### Entorno de entrenamiento (Windows con GPU o Linux)
+### Dependencias Python
 
 ```bash
-conda env create -f environment-train.yml
-conda activate fishbowl-train
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-### Entorno de exportación Hailo (Linux x86 — compañero)
+Para entrenamiento GPU, instala PyTorch/CUDA según tu máquina desde la guía oficial de PyTorch. El archivo `requirements.txt` incluye `torch` y `torchvision` como base, pero en CUDA suele convenir usar el índice específico de PyTorch.
+
+### Exportación Hailo
 
 ```bash
-conda env create -f environment-export.yml
-conda activate fishbowl-export
+pip install -r requirements.txt
 # Instalar Hailo Dataflow Compiler manualmente — ver docs/hailo_setup.md
-```
-
-### Raspberry Pi 5
-
-```bash
-pip install -r requirements-rpi.txt
-# HailoRT se instala a nivel sistema — ver docs/hailo_setup.md
 ```
 
 ## Uso
 
-### 1. Preparar el dataset
+### Ejecutar pipeline completo
+
+El JSON actual es COCO-like:
+- `category_id: 1` = `fish`, con bbox `[x, y, w, h]` en píxeles.
+- `category_id: 0` = `empty`, sin bbox. Se trata como background implícito.
+
+Editar parámetros y pasos en `config.py`. `PipelineConfig` controla qué etapas se ejecutan.
 
 ```bash
-python scripts/prepare_dataset.py \
-  --json ruta/al/dataset.json \
-  --images ruta/a/las/imagenes/ \
-  --output data/processed/
+python main.py
 ```
 
-### 2. Entrenar
+Para GPUs con menos VRAM, cambiar `TrainConfig.batch` en `config.py`: `16` para 5060 8GB o `8` para 3050 6GB.
+Para verificar el comando HEF sin compilar, cambiar `ExportHefConfig.dry_run = True`.
 
-```bash
-python scripts/train.py --config configs/hyperparams.yaml
-```
-
-### 3. Exportar a ONNX
-
-```bash
-python scripts/export_onnx.py --weights models/best.pt
-```
-
-### 4. Compilar a HEF (Linux x86 + Hailo SDK)
-
-```bash
-python scripts/export_hef.py --onnx models/model.onnx
-```
-
-### 5. Inferencia en Raspberry Pi
-
-```bash
-python inference/infer.py --model models/model.hef --source 0
-```
+Genera gráficas de `cls_loss`, `box_loss`, `dfl_loss`, precision, recall, mAP50,
+mAP50-95, histograma de IoU y contact sheets de 10 frames de validación con
+GT en verde y predicción en rojo.
 
 ## Notas
 
-- El dataset (`data/`) y los modelos (`models/`) están en `.gitignore` por su tamaño.
+- El dataset (`dataset/`, `data/`) y los modelos (`models/`) están en `.gitignore` por su tamaño.
 - El paso de compilación `.onnx → .hef` requiere el Hailo Dataflow Compiler instalado en Linux x86. Ver `docs/hailo_setup.md`.
-- Confirmar si la clase `no-pez` debe entrenarse explícitamente o tratarse como background implícito.
+- El entrenamiento no congela capas (`freeze: 0`) para hacer fine-tuning completo.
