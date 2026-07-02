@@ -1,13 +1,14 @@
-# Rutas relativas a la raíz del repo
+# Rutas relativas a la raíz del repo.
+# Este archivo apunta al dataset ya convertido a formato YOLO por
+# scripts/prepare_dataset.py.
 path: data/processed
 train: images/train
 val: images/val
-test: images/test
+test: images/val
 
 # Clases
-# NOTA: confirmar con el contacto si 'no-pez' debe entrenarse como clase explícita
-# o si se omite y se trata como background implícito (más común en detección)
-nc: 2
+# El JSON trae category_id=1 fish con bbox y category_id=0 empty sin bbox.
+# "empty" se trata como background implícito: etiqueta .txt vacía.
+nc: 1
 names:
-  0: pez
-  1: no-pez
+  0: fish
