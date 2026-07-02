@@ -1,8 +1,0 @@
-# Instalar en la Raspberry Pi 5 (no usar conda, pip directo)
-# Requiere hailort instalado a nivel sistema desde el paquete .deb oficial
-# ver docs/hailo_setup.md
-
-numpy
-opencv-python-headless
-pyyaml
-# hailo Python bindings se instalan via el .deb del HailoRT SDK
