@@ -27,13 +27,13 @@ No cubre integración con otros sistemas, UI, ni base de datos.
 | Formato intermedio | ONNX |
 | Formato de deployment | HEF (Hailo) |
 | Runtime en Pi | HailoRT + hailo-python-api |
-| Entornos | Conda (entrenamiento/exportación), pip (Pi) |
+| Entornos | pip + requirements.txt |
 
 ### Entornos por máquina
 
-- **Entrenamiento** (`environment-train.yml`): Windows (Darío) o Linux Nix (compañero), GPU local
-- **Exportación HEF** (`environment-export.yml`): solo Linux x86 — le toca al compañero
-- **Inferencia** (`requirements-rpi.txt`): Raspberry Pi 5, sin conda
+- **Entrenamiento** (`requirements.txt`): Windows (Darío) o Linux Nix (compañero), GPU local
+- **Exportación HEF** (`requirements.txt` + Hailo SDK): solo Linux x86 — le toca al compañero
+- **Inferencia** (`requirements.txt` + HailoRT): Raspberry Pi 5
 
 ---
 
@@ -56,7 +56,7 @@ configs/dataset.yaml
 configs/hyperparams.yaml   ← define los valores iniciales
 inference/infer.py
 inference/camera.py
-requirements-rpi.txt
+requirements.txt
 docs/dataset_format.md
 README.md                  ← secciones: Dataset y Deployment
 ```
@@ -66,9 +66,8 @@ README.md                  ← secciones: Dataset y Deployment
 scripts/train.py
 scripts/export_onnx.py
 scripts/export_hef.py
-scripts/validate.py
-environment-train.yml
-environment-export.yml
+scripts/metrics_report.py
+requirements.txt
 docs/hailo_setup.md
 ```
 
@@ -84,9 +83,8 @@ Entorno de trabajo: Linux x86 (único entorno compatible con el Hailo SDK).
 scripts/train.py
 scripts/export_onnx.py
 scripts/export_hef.py
-scripts/validate.py
-environment-train.yml
-environment-export.yml
+scripts/metrics_report.py
+requirements.txt
 docs/hailo_setup.md
 notebooks/eda.ipynb
 README.md                  ← secciones: Entrenamiento y Exportación
@@ -98,7 +96,7 @@ scripts/prepare_dataset.py
 configs/dataset.yaml
 inference/infer.py
 inference/camera.py
-requirements-rpi.txt
+requirements.txt
 docs/dataset_format.md
 ```
 
@@ -138,8 +136,9 @@ Para cualquier cambio no trivial (más de ~20 líneas):
 - Type hints en todas las funciones
 - Docstrings en funciones públicas (formato Google style)
 - Constantes en UPPER_SNAKE_CASE al inicio del archivo
-- Sin lógica en el nivel de módulo — todo dentro de funciones o `if __name__ == "__main__"`
-- Argumentos CLI via `argparse`, no hardcodeados
+- Sin lógica en el nivel de módulo — todo dentro de funciones importables.
+- Único entrypoint ejecutable: `main.py`.
+- Parámetros operativos centralizados en `config.py`; no usar flags CLI ni `argparse`.
 
 **Archivos:**
 - Un archivo = una responsabilidad clara
