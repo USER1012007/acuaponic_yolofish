@@ -1,0 +1,12 @@
+dataset/
+data/
+models/
+runs/
+reports/
+*.hef
+*.onnx
+*.engine
+*.pt
+*.pth
+__pycache__/
+.ipynb_checkpoints/
