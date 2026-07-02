@@ -9,10 +9,10 @@
 
 1. Descargar el paquete desde https://developer.hailo.ai (requiere registro)
 2. Instalar `hailo_dataflow_compiler` siguiendo las instrucciones del portal
-3. Activar el entorno `fishbowl-export` e instalar el wheel:
+3. Activar el entorno Python del proyecto e instalar el wheel:
 
 ```bash
-conda activate fishbowl-export
+source .venv/bin/activate
 pip install hailo_dataflow_compiler-*.whl
 ```
 

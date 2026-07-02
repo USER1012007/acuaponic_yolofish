@@ -1,21 +1,57 @@
 # Formato del dataset
 
-## Pendiente de confirmar con el contacto
+## Formato detectado
 
-Este documento debe completarse una vez que llegue el dataset.
+El archivo actual es:
 
-## Preguntas abiertas
+```text
+dataset/community_fish_detection_dataset.json
+```
 
-1. ¿En qué formato vienen las bboxes en el JSON?
-   - `[x, y, w, h]` en píxeles absolutos
-   - `[x1, y1, x2, y2]` en píxeles absolutos
-   - `[cx, cy, w, h]` normalizado
+Tiene estructura COCO-like:
 
-2. ¿Las coordenadas ya están normalizadas (0-1) o en píxeles absolutos?
+```json
+{
+  "images": [
+    {
+      "id": "string",
+      "file_name": "string",
+      "width": 1920,
+      "height": 1080,
+      "is_train": true,
+      "dataset": "source_name",
+      "original_data_source": "source_video_or_image"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "string_or_int",
+      "image_id": "string",
+      "category_id": 1,
+      "bbox": [x, y, width, height]
+    }
+  ],
+  "categories": [
+    {"id": 1, "name": "fish"},
+    {"id": 0, "name": "empty"}
+  ]
+}
+```
 
-3. ¿El JSON sigue algún estándar conocido (COCO, Pascal VOC, etc.)?
+## Bboxes
 
-4. ¿La clase `no-pez` (1) debe entrenarse explícitamente o ignorarse?
+Las bboxes vienen como `[x, y, width, height]` en píxeles absolutos.
+`scripts/prepare_dataset.py` las convierte a YOLO normalizado:
+
+```text
+class_id cx cy w h
+```
+
+## Clases
+
+- `category_id: 1`, `fish`: se convierte a clase YOLO `0`.
+- `category_id: 0`, `empty`: no tiene bbox y se trata como background implícito.
+  Para estas imágenes se crea un `.txt` vacío.
 
 ## Formato de salida esperado (YOLO txt)
 
@@ -27,6 +63,6 @@ clase cx cy w h
 ```
 
 Donde:
-- `clase`: entero (0 = pez, 1 = no-pez)
+- `clase`: entero (`0 = fish`)
 - `cx`, `cy`: centro de la bbox normalizado entre 0 y 1
 - `w`, `h`: ancho y alto normalizados entre 0 y 1
