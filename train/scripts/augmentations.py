@@ -11,6 +11,7 @@ import numpy as np
 
 MIN_BBOX_VISIBILITY = 0.25
 MIN_BBOX_AREA = 8.0
+BBOX_EPSILON = 1e-9
 
 
 def _image_compression() -> A.BasicTransform:
@@ -140,8 +141,9 @@ def apply_yolo_augmentation(
         Augmented image and filtered labels in YOLO format.
     """
     transform = build_train_augmentation(image_size=image_size)
-    bboxes = [label[1:] for label in labels]
-    class_labels = [label[0] for label in labels]
+    sanitized_labels = sanitize_yolo_labels(labels)
+    bboxes = [label[1:] for label in sanitized_labels]
+    class_labels = [label[0] for label in sanitized_labels]
     augmented: dict[str, Any] = transform(
         image=image,
         bboxes=bboxes,
@@ -158,3 +160,34 @@ def apply_yolo_augmentation(
         height = min(max(height, 0.0), 1.0)
         aug_labels.append((int(class_id), cx, cy, width, height))
     return augmented["image"], aug_labels
+
+
+def sanitize_yolo_labels(
+    labels: list[tuple[int, float, float, float, float]],
+) -> list[tuple[int, float, float, float, float]]:
+    """Clamp YOLO labels so Albumentations receives strictly valid bboxes.
+
+    Small rounding errors in normalized labels can make edge-touching boxes
+    become values such as -0.0000005 after Albumentations converts YOLO cxcywh
+    to xyxy. This function clamps in xyxy space and recomputes cxcywh.
+    """
+    sanitized: list[tuple[int, float, float, float, float]] = []
+    for class_id, cx, cy, width, height in labels:
+        x1 = max(0.0, cx - width / 2.0)
+        y1 = max(0.0, cy - height / 2.0)
+        x2 = min(1.0, cx + width / 2.0)
+        y2 = min(1.0, cy + height / 2.0)
+        clipped_width = x2 - x1
+        clipped_height = y2 - y1
+        if clipped_width <= BBOX_EPSILON or clipped_height <= BBOX_EPSILON:
+            continue
+        sanitized.append(
+            (
+                int(class_id),
+                x1 + clipped_width / 2.0,
+                y1 + clipped_height / 2.0,
+                clipped_width,
+                clipped_height,
+            )
+        )
+    return sanitized

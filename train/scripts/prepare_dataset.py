@@ -390,8 +390,8 @@ def append_annotations(
         with label_path.open("a", encoding="utf-8") as handle:
             handle.write(
                 f"{YOLO_CLASS_ID} "
-                f"{yolo_bbox[0]:.6f} {yolo_bbox[1]:.6f} "
-                f"{yolo_bbox[2]:.6f} {yolo_bbox[3]:.6f}\n"
+                f"{yolo_bbox[0]:.10f} {yolo_bbox[1]:.10f} "
+                f"{yolo_bbox[2]:.10f} {yolo_bbox[3]:.10f}\n"
             )
         stats.fish_annotations += 1
         if stats.fish_annotations % 100_000 == 0:
@@ -414,7 +414,7 @@ def read_yolo_labels(label_path: Path) -> list[tuple[int, float, float, float, f
 def write_yolo_labels(label_path: Path, labels: list[tuple[int, float, float, float, float]]) -> None:
     """Write YOLO labels to a txt file."""
     lines = [
-        f"{class_id} {cx:.6f} {cy:.6f} {width:.6f} {height:.6f}"
+        f"{class_id} {cx:.10f} {cy:.10f} {width:.10f} {height:.10f}"
         for class_id, cx, cy, width, height in labels
     ]
     label_path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
