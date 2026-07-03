@@ -38,7 +38,7 @@ La carpeta local `hailo/hailo_model_zoo` parece ser Model Zoo 5.3.0, pero tus
 wheels son Dataflow Compiler 3.34.0 / HailoRT 4.24.0. Esa combinación no debe
 mezclarse para Hailo-8.
 
-Para Hailo-8, usa el tag release real `v2.19.0`. No uses la branch
+Para Hailo-8 / Hailo-8L, usa el tag release real `v2.19.0`. No uses la branch
 `update-hailo8-link-v2.19`, porque conserva metadata de Model Zoo 5.3.0.
 
 ```bash
@@ -48,6 +48,24 @@ pip install --no-build-isolation -e hailo/hailo_model_zoo
 pip check
 hailomz --help
 ```
+
+## Target de compilación
+
+Este proyecto está configurado para Hailo-8L:
+
+```text
+--hw-arch hailo8l
+```
+
+El HEF final se genera en:
+
+```text
+hef/model_hailo8l_e<epoch>.hef
+```
+
+`<epoch>` se toma de la última época completada en `results.csv`. Por ejemplo,
+si el entrenamiento iba en la época 10 cuando lo interrumpiste, el archivo queda
+como `hef/model_hailo8l_e10.hef`.
 
 ## Instalación de HailoRT en Raspberry Pi 5
 
