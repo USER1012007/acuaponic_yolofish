@@ -26,3 +26,7 @@ envs/
 # OS
 .DS_Store
 Thumbs.db
+
+migrations/
+hailo_dataflow_compiler-3.34.0-py3-none-linux_x86_64.whl
+hailort-4.24.0-cp311-cp311-linux_x86_64.whl
