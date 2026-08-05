@@ -70,9 +70,14 @@ def build_train_args(config: TrainConfig) -> dict[str, Any]:
     train_args["val"] = True
     train_args["save"] = True
     train_args["exist_ok"] = True
-    if config.resume:
-        train_args["resume"] = True
     return train_args
+
+
+def resume_checkpoint(config: TrainConfig) -> Path:
+    """Return the expected Ultralytics checkpoint for resuming a run."""
+    if config.resume_checkpoint is not None:
+        return config.resume_checkpoint
+    return config.project / config.name / "weights" / "last.pt"
 
 
 def train_model(config: TrainConfig) -> Path:
@@ -87,8 +92,20 @@ def train_model(config: TrainConfig) -> Path:
 
     train_args = build_train_args(config)
 
-    LOGGER.info("Starting full fine-tuning from %s", config.model)
-    model = YOLO(str(config.model))
+    model_path = config.model
+    if config.resume:
+        checkpoint = resume_checkpoint(config)
+        if checkpoint.exists():
+            model_path = checkpoint
+            train_args["resume"] = True
+            LOGGER.info("Resuming training from %s", checkpoint)
+        else:
+            LOGGER.warning("Resume requested but checkpoint was not found: %s", checkpoint)
+            LOGGER.warning("Starting a new fine-tuning run from %s", config.model)
+    else:
+        LOGGER.info("Starting full fine-tuning from %s", config.model)
+
+    model = YOLO(str(model_path))
     results = model.train(**train_args)
 
     save_dir = Path(getattr(results, "save_dir", train_args.get("project", "runs/train")))
