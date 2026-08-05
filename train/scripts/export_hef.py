@@ -35,6 +35,47 @@ def validate_inputs(onnx: Path, calib_path: Path) -> None:
         raise FileNotFoundError(f"Calibration image directory not found: {calib_path}")
 
 
+def resolve_completed_epoch(config: ExportHefConfig) -> int:
+    """Resolve the completed training epoch used in the HEF filename."""
+    if config.epoch_override is not None:
+        return config.epoch_override
+    if not config.epoch_source.exists():
+        raise FileNotFoundError(
+            f"Epoch source not found: {config.epoch_source}. "
+            "Set ExportHefConfig.epoch_override if you want a manual suffix."
+        )
+
+    last_epoch: int | None = None
+    with config.epoch_source.open("r", encoding="utf-8") as handle:
+        header = handle.readline()
+        if "epoch" not in header:
+            raise ValueError(f"results.csv does not contain an epoch column: {config.epoch_source}")
+        for line in handle:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            epoch_text = stripped.split(",", maxsplit=1)[0].strip()
+            last_epoch = int(float(epoch_text))
+
+    if last_epoch is None:
+        raise ValueError(f"No epoch rows found in: {config.epoch_source}")
+    return last_epoch
+
+
+def resolve_output_path(config: ExportHefConfig, epoch: int) -> Path:
+    """Resolve final HEF output path."""
+    if config.output is not None:
+        return config.output
+    return config.output_dir / config.output_name_template.format(epoch=epoch)
+
+
+def resolve_work_dir(config: ExportHefConfig, epoch: int) -> Path:
+    """Resolve temporary Hailo compiler work directory."""
+    if config.work_dir is not None:
+        return config.work_dir
+    return config.output_dir / config.work_dir_name_template.format(epoch=epoch)
+
+
 def build_default_command(config: ExportHefConfig) -> list[str]:
     """Build the default Hailo Model Zoo compile command."""
     command = [
@@ -64,9 +105,9 @@ def build_custom_command(config: ExportHefConfig) -> list[str]:
         return build_default_command(config)
     rendered = config.command_template.format(
         onnx=config.onnx.resolve(),
-        output=config.output.resolve(),
+        output=resolve_output_path(config, resolve_completed_epoch(config)).resolve(),
         calib_path=config.calib_path.resolve(),
-        work_dir=config.work_dir.resolve(),
+        work_dir=resolve_work_dir(config, resolve_completed_epoch(config)).resolve(),
         hw_arch=config.hw_arch,
         classes=config.classes,
         model_name=config.model_name,
@@ -84,13 +125,16 @@ def find_hef(work_dir: Path) -> Path:
 
 def compile_hef(config: ExportHefConfig) -> Path:
     """Compile ONNX to HEF and copy the artifact to the requested output."""
-    config.work_dir.mkdir(parents=True, exist_ok=True)
-    config.output.parent.mkdir(parents=True, exist_ok=True)
+    epoch = resolve_completed_epoch(config)
+    output = resolve_output_path(config, epoch)
+    work_dir = resolve_work_dir(config, epoch)
+    work_dir.mkdir(parents=True, exist_ok=True)
+    output.parent.mkdir(parents=True, exist_ok=True)
 
     command = build_custom_command(config)
     LOGGER.info("Compiler command: %s", " ".join(command))
     if config.dry_run:
-        return config.output
+        return output
 
     validate_inputs(config.onnx, config.calib_path)
 
@@ -110,11 +154,11 @@ def compile_hef(config: ExportHefConfig) -> Path:
             f"{conda_lib}:{current_library_path}" if current_library_path else conda_lib
         )
 
-    subprocess.run(command, check=True, cwd=config.work_dir, env=env)
-    hef_path = find_hef(config.work_dir)
-    shutil.copy2(hef_path, config.output)
-    LOGGER.info("HEF exported to %s", config.output)
-    return config.output
+    subprocess.run(command, check=True, cwd=work_dir, env=env)
+    hef_path = find_hef(work_dir)
+    shutil.copy2(hef_path, output)
+    LOGGER.info("HEF exported to %s", output)
+    return output
 
 
 def run_export_hef(config: ExportHefConfig = EXPORT_HEF) -> Path:
