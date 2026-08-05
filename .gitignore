@@ -2,9 +2,11 @@
 data/raw/
 data/processed/
 
+hailo_model_zoo/
 # Modelos
 models/
 *.pt
+*.har
 *.onnx
 *.hef
 
