@@ -123,9 +123,9 @@ class PipelineConfig:
     """Configuration for main.py orchestration."""
 
     prepare_dataset: bool = False
-    train: bool = False
-    export_onnx: bool = False
-    export_hef: bool = True
+    train: bool = True
+    export_onnx: bool = True
+    export_hef: bool = False
     report: bool = False
 
 
