@@ -126,7 +126,7 @@ class PipelineConfig:
     train: bool = True
     export_onnx: bool = True
     export_hef: bool = False
-    report: bool = False
+    report: bool = True
 
 
 PREPARE_DATASET = PrepareDatasetConfig()
