@@ -21,22 +21,17 @@ def configure_logging(level: str) -> None:
     """Configure process logging."""
     logging.basicConfig(
         level=getattr(logging, level.upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s %(message)s",
+        format="%(levelname)s %(message)s",
     )
 
 
-def export_onnx(weights: Path, output: Path, imgsz: int, opset: int) -> Path:
+def export_onnx(weights: Path, output: Path, imgsz: int, opset: int, simplify: bool) -> Path:
     """Export a YOLO checkpoint to ONNX."""
-    try:
-        from ultralytics import YOLO
-    except ImportError as exc:
-        raise SystemExit(
-            "Missing dependency 'ultralytics'. Activate the training/export environment "
-            "or install it with: pip install ultralytics"
-        ) from exc
+    from ultralytics import YOLO
 
     if not weights.exists():
         raise FileNotFoundError(f"Weights not found: {weights}")
+
     output.parent.mkdir(parents=True, exist_ok=True)
 
     model = YOLO(str(weights))
@@ -46,7 +41,7 @@ def export_onnx(weights: Path, output: Path, imgsz: int, opset: int) -> Path:
             imgsz=imgsz,
             opset=opset,
             dynamic=False,
-            simplify=True,
+            simplify=simplify,
             nms=False,
             batch=1,
         )
@@ -61,4 +56,5 @@ def export_onnx(weights: Path, output: Path, imgsz: int, opset: int) -> Path:
 
 def run_export_onnx(config: ExportOnnxConfig = EXPORT_ONNX) -> Path:
     """Run ONNX export."""
-    return export_onnx(config.weights, config.output, config.imgsz, config.opset)
+    return export_onnx(config.weights, config.output, config.imgsz, config.opset, config.simplify)
+
