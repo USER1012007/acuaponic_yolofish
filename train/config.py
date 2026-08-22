@@ -1,19 +1,33 @@
-"""Central project configuration for dataset prep, training, export, and reports."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
 
 
+OUTPUT_DIR = Path("output")
+MODELS_DIR = Path("models")
+CONFIGS_DIR = Path("configs")
+DATA_YAML = CONFIGS_DIR / "dataset.yaml"
+
+MODELS = [
+    "yolov8n.pt",
+    "yolov9n.pt",
+    "yolov10n.pt",
+    "yolo11n.pt",
+]
+
+def get_model_path(model_name: str) -> Path:
+    return MODELS_DIR / model_name
+
+def get_model_output_dir(model_name: str) -> Path:
+    return OUTPUT_DIR / model_name.replace(".pt", "")
+
+TRAIN_EPOCHS = 1
 LOG_LEVEL = "INFO"
-TRAIN_EPOCHS = 100
-RUN_DIR = Path("runs/detect/runs/train/fish_yolov8n_pilot_ouyeah")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class PrepareDatasetConfig:
-
     json_path: Path = Path("dataset/community_fish_detection_dataset.json")
     dataset_root: Path = Path("dataset")
     output: Path = Path("data/processed")
@@ -29,103 +43,82 @@ class PrepareDatasetConfig:
     overwrite: bool = True
     allow_stdlib_json: bool = False
 
-
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class TrainConfig:
-
-    model: Path = Path("model/yolov8n.pt")
+    model: Path = Path("") 
     data: Path = Path("configs/dataset.yaml")
-    output_dir: Path = Path("models")
-    resume: bool = True
-    resume_checkpoint: Path | None = RUN_DIR / "weights/last.pt"
+    output_dir: Path = OUTPUT_DIR / "models"
+    data: Path = DATA_YAML
+    project: Path = OUTPUT_DIR
+    name: str = "fish_model"
     imgsz: int = 640
     epochs: int = TRAIN_EPOCHS
     batch: int = 8
     workers: int = 8
     device: int | str = 0
     optimizer: str = "AdamW"
-    lr0: float = 0.001
-    weight_decay: float = 0.0005
-    hsv_h: float = 0.015
-    hsv_s: float = 0.7
-    hsv_v: float = 0.4
-    fliplr: float = 0.5
-    mosaic: float = 1.0
-    close_mosaic: int = 15
-    mixup: float = 0.05
-    copy_paste: float = 0.0
-    project: Path = Path("runs/train")
-    name: str = "fish_yolov8n_pilot_ouyeah"
     patience: int = 30
     seed: int = 42
-    freeze: int = 0
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class ExportOnnxConfig:
-    """Configuration for scripts/export_onnx.py."""
-
-    weights: Path = RUN_DIR / "weights/last.pt"
+    weights: Path = Path("models/model.pt")
     output: Path = Path("models/model.onnx")
     imgsz: int = 640
     opset: int = 11
+    simplify: bool = False
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class ExportHefConfig:
-    """Configuration for scripts/export_hef.py."""
-
-    onnx: Path = Path("models/model.onnx")
+    onnx: Path = Path("runs/detect/output/")
     output: Path | None = None
-    output_dir: Path = Path("hef")
-    output_name_template: str = "model_hailo8l_e{epoch}.hef"
+    output_dir: Path = OUTPUT_DIR / "hef"
     calib_path: Path = Path("data/calibration/images")
-    work_dir: Path | None = None
-    work_dir_name_template: str = "hailo_compile_hailo8l_e{epoch}"
-    epoch_source: Path = RUN_DIR / "results.csv"
-    epoch_override: int | None = None
     hw_arch: str = "hailo8l"
     classes: int = 1
-    model_name: str = "fish_yolov8n_hailo8l"
     dry_run: bool = False
-    command_template: str | None = None
-    start_node_names: tuple[str, ...] = ()
-    end_node_names: tuple[str, ...] = (
-        "/model.22/cv2.0/cv2.0.2/Conv",
-        "/model.22/cv3.0/cv3.0.2/Conv",
-        "/model.22/cv2.1/cv2.1.2/Conv",
-        "/model.22/cv3.1/cv3.1.2/Conv",
-        "/model.22/cv2.2/cv2.2.2/Conv",
-        "/model.22/cv3.2/cv3.2.2/Conv",
+    epoch_override: int | None = None
+    epoch_source: Path = Path("results.csv")
+    output_name_template: str = "model.hef"
+    work_dir: Path | None = None
+    work_dir_name_template: str = "hailo_compile"
+    model_name: str = "yolov8n"
+    command_template: str = (
+        "hailomz compile {model_name} "
+        "--ckpt {onnx} "
+        "--hw-arch {hw_arch} "
+        "--calib-path {calib_path} "
+        "--classes {classes} "
+        "--performance"
     )
+    start_node_names: tuple[str, ...] = ()
+    end_node_names: tuple[str, ...] = ()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class ReportConfig:
-    """Configuration for validation reports."""
-
-    weights: Path = RUN_DIR / "weights/best.pt"
+    weights: Path = Path("models/model.pt")
+    run_dir: Path = OUTPUT_DIR
     data: Path = Path("configs/dataset.yaml")
-    run_dir: Path = RUN_DIR
     output: Path = Path("reports/validation")
     imgsz: int = 640
-    conf: float = 0.25
+    conf: float = 0.5
     iou: float = 0.5
-    group_size: int = 10
-    tile_width: int = 384
-    max_images: int | None = 1_000
     skip_model_val: bool = False
     skip_prediction_images: bool = False
+    max_images: int | None = None
+    group_size: int = 25
+    tile_width: int = 320
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class PipelineConfig:
-    """Configuration for main.py orchestration."""
-
     prepare_dataset: bool = False
-    train: bool = True
+    train: bool = False
     export_onnx: bool = True
-    export_hef: bool = False
+    export_hef: bool = True
     report: bool = True
 
 
