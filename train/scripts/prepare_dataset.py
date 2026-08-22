@@ -11,6 +11,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 import sys
 from typing import Any, Iterable
+from config import PREPARE_DATASET, PrepareDatasetConfig, DATA_YAML
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from config import PREPARE_DATASET, PrepareDatasetConfig
+
 
 LOGGER = logging.getLogger(__name__)
 FISH_CATEGORY_ID = 1
@@ -486,16 +488,22 @@ def create_calibration_subset(
     LOGGER.info("Created %s calibration images", stats.calibration_images)
 
 
-def write_dataset_yaml(output: Path) -> None:
-    """Write a YOLO dataset.yaml next to the prepared dataset."""
-    dataset_yaml = output / "dataset.yaml"
-    dataset_yaml.write_text(
+def write_dataset_yaml(dataset_root: Path, yaml_path: Path) -> None:
+    """Write a YOLO dataset.yaml pointing at the prepared dataset."""
+    yaml_path.parent.mkdir(parents=True, exist_ok=True)
+    yaml_path.write_text(
         "\n".join(
             [
-                f"path: {output.as_posix()}",
+                "# Rutas relativas a la raíz del repo.",
+                "# Este archivo apunta al dataset ya convertido a formato YOLO por",
+                "# scripts/prepare_dataset.py.",
+                f"path: {dataset_root.as_posix()}",
                 "train: images/train",
                 "val: images/val",
                 "test: images/val",
+                "# Clases",
+                "# El JSON trae category_id=1 fish con bbox y category_id=0 empty sin bbox.",
+                '# "empty" se trata como background implícito: etiqueta .txt vacía.',
                 "nc: 1",
                 "names:",
                 "  0: fish",
@@ -504,7 +512,6 @@ def write_dataset_yaml(output: Path) -> None:
         ),
         encoding="utf-8",
     )
-
 
 def write_manifest(output: Path, selected: dict[str, ImageRecord], stats: PrepareStats) -> None:
     """Write a JSON manifest for reproducibility."""
@@ -526,7 +533,7 @@ def run_prepare_dataset(config: PrepareDatasetConfig = PREPARE_DATASET) -> Prepa
     append_annotations(config, selected, stats)
     create_augmented_training_samples(config, selected, stats)
     create_calibration_subset(config, selected, stats)
-    write_dataset_yaml(config.output)
+    write_dataset_yaml(config.output, DATA_YAML)
     write_manifest(config.output, selected, stats)
 
     LOGGER.info("Done: %s", asdict(stats))
